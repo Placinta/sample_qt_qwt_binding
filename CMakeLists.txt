@@ -20,9 +20,14 @@ project(QwtBinding)
 set(CMAKE_CXX_STANDARD 11)
 
 # The sample library for which we will create bindings.
-set(qwt_library "libqwt")
-set(qwt_library_path "/Users/foo/Desktop/qwt_project/qwt_build/qwt-6.1.4/lib/qwt.framework/Versions/6/qwt")
-set(qwt_include_dir "/Users/foo/Desktop/qwt_project/qwt_build/qwt-6.1.4/lib/qwt.framework/Versions/6/Headers")
+
+# !!!!!!!! <<<<<<< Change this to install location of qwt aka $$QWT_INSTALL_PREFIX
+set(qwt_prefix "$ENV{HOME}/Dev/qwt/installed")
+find_library(qwt_library qwt PATHS "${qwt_prefix}" PATH_SUFFIXES "lib" "bin" "include")
+find_path(qwt_include_dir "qwt.h" PATHS ${qwt_prefix} PATH_SUFFIXES "lib" "bin" "include")
+
+# This doesn't really do anything if qwt is built with no rpath support.
+set(qwt_rpath "${qwt_prefix}")
 
 # The name of the generated bindings module (as imported in Python). You can change the name
 # to something relevant for your project.
@@ -42,6 +47,7 @@ set(typesystem_file ${CMAKE_SOURCE_DIR}/bindings.xml)
 set(generated_sources
     ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/pysideqwt_module_wrapper.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/qwtplot_wrapper.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/qwtplotdict_wrapper.cpp
 )
 
 # ================================== Shiboken detection ======================================
@@ -115,7 +121,7 @@ endif()
 # Enable rpaths so that the built shared libraries find their dependencies.
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-set(CMAKE_INSTALL_RPATH ${pyside2_path} ${CMAKE_CURRENT_SOURCE_DIR})
+set(CMAKE_INSTALL_RPATH ${pyside2_path} ${CMAKE_CURRENT_SOURCE_DIR} ${qwt_rpath})
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 # =============================================================================================
 # !!! End of dubious section.
@@ -132,7 +138,7 @@ set(shiboken_options --generator-set=shiboken --enable-parent-ctor-heuristic
     ${INCLUDES}
     -I${CMAKE_SOURCE_DIR}
     -T${CMAKE_SOURCE_DIR}
-    -T${PYSIDE2_PATH}/typesystems
+    -T${pyside2_path}/typesystems
     -I${qwt_include_dir}
     --output-directory=${CMAKE_CURRENT_BINARY_DIR}
     )
@@ -176,9 +182,6 @@ target_include_directories(${bindings_library} PRIVATE ${shiboken_include_dir})
 target_include_directories(${bindings_library} PRIVATE ${pyside2_include_dir})
 target_include_directories(${bindings_library} PRIVATE ${pyside2_additional_includes})
 target_include_directories(${bindings_library} PRIVATE ${CMAKE_SOURCE_DIR})
-
-add_library(${qwt_library} SHARED IMPORTED)
-set_target_properties(${qwt_library} PROPERTIES IMPORTED_LOCATION ${qwt_library_path})
 
 target_link_libraries(${bindings_library} PRIVATE ${shiboken_shared_libraries})
 target_link_libraries(${bindings_library} PRIVATE ${qwt_library})
@@ -268,6 +271,13 @@ install(TARGETS ${bindings_library}
         LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}
         RUNTIME DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}
         )
+
+# Qwt seems to be built with no rpath support, so to load the generated module, the framework
+# has to be copied to the same folder as the .so file. 
+if(APPLE)
+	install(DIRECTORY "${qwt_prefix}/lib/qwt.framework" DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
+
 # =============================================================================================
 # !!! End of dubious section.
 # =============================================================================================

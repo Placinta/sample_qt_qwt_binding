@@ -1,8 +1,11 @@
 <?xml version="1.0"?>
 
 <typesystem package="pysideqwt">
-
+    <load-typesystem name="typesystem_widgets.xml" generate="no"/>
+    <object-type name="QwtPlotDict"/>
     <object-type name="QwtPlot">
+        <enum-type name="Axis" />
+        <enum-type name="LegendPosition" />
     </object-type>
 
 </typesystem>
