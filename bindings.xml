@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+
+<typesystem package="pysideqwt">
+
+    <object-type name="QwtPlot">
+    </object-type>
+
+</typesystem>
